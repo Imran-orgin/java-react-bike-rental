@@ -1,0 +1,27 @@
+body { margin: 0; background: #1e1f26; color: #fff; font-family: system-ui, sans-serif; }
+.page { max-width: 900px; margin: 0 auto; padding: 32px 16px; }
+h1 { margin-top: 0; }
+section { margin-bottom: 32px; }
+.bikes { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; }
+.bike-card { background: #2b2d38; border: 2px solid transparent; border-radius: 12px; padding: 16px; cursor: pointer; }
+.bike-card:hover { border-color: #4a4e63; }
+.bike-card.selected { border-color: #f59e0b; }
+.bike-card h3 { margin: 0 0 8px; }
+.bike-card p { margin: 4px 0; color: #b5b8c8; }
+.price { color: #f59e0b !important; font-weight: 600; }
+.badge { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 12px; }
+.badge.ok { background: #14532d; color: #86efac; }
+.badge.no { background: #5b2630; color: #fca5a5; }
+.booking-form { display: grid; gap: 12px; max-width: 420px; background: #2b2d38; padding: 16px; border-radius: 12px; }
+.booking-form label { display: grid; gap: 4px; font-size: 14px; color: #b5b8c8; }
+input, select { padding: 10px; border-radius: 8px; border: 1px solid #3a3d4d; background: #1e1f26; color: #fff; font-size: 14px; }
+button { padding: 12px; border: none; border-radius: 8px; background: #22c55e; color: #fff; font-size: 16px; cursor: pointer; }
+button:hover { background: #16a34a; }
+.estimate { margin: 0; color: #f59e0b; }
+.message { padding: 10px; border-radius: 8px; font-size: 14px; }
+.message.success { background: #14532d; }
+.message.error { background: #5b2630; }
+table { width: 100%; border-collapse: collapse; background: #2b2d38; border-radius: 12px; overflow: hidden; }
+th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #3a3d4d; }
+th { background: #3a3d4d; }
+.empty { color: #8b8fa3; }
