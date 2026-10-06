@@ -37,6 +37,7 @@ public class BikeService {
         bike.setType(updated.getType());
         bike.setPricePerDay(updated.getPricePerDay());
         bike.setAvailable(updated.isAvailable());
+        bike.setImageUrl(updated.getImageUrl());
         return repository.save(bike);
     }
 

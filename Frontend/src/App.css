@@ -1,27 +1,99 @@
-body { margin: 0; background: #1e1f26; color: #fff; font-family: system-ui, sans-serif; }
-.page { max-width: 900px; margin: 0 auto; padding: 32px 16px; }
-h1 { margin-top: 0; }
-section { margin-bottom: 32px; }
-.bikes { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; }
-.bike-card { background: #2b2d38; border: 2px solid transparent; border-radius: 12px; padding: 16px; cursor: pointer; }
-.bike-card:hover { border-color: #4a4e63; }
-.bike-card.selected { border-color: #f59e0b; }
-.bike-card h3 { margin: 0 0 8px; }
-.bike-card p { margin: 4px 0; color: #b5b8c8; }
-.price { color: #f59e0b !important; font-weight: 600; }
-.badge { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 12px; }
-.badge.ok { background: #14532d; color: #86efac; }
-.badge.no { background: #5b2630; color: #fca5a5; }
-.booking-form { display: grid; gap: 12px; max-width: 420px; background: #2b2d38; padding: 16px; border-radius: 12px; }
-.booking-form label { display: grid; gap: 4px; font-size: 14px; color: #b5b8c8; }
-input, select { padding: 10px; border-radius: 8px; border: 1px solid #3a3d4d; background: #1e1f26; color: #fff; font-size: 14px; }
-button { padding: 12px; border: none; border-radius: 8px; background: #22c55e; color: #fff; font-size: 16px; cursor: pointer; }
-button:hover { background: #16a34a; }
-.estimate { margin: 0; color: #f59e0b; }
-.message { padding: 10px; border-radius: 8px; font-size: 14px; }
-.message.success { background: #14532d; }
-.message.error { background: #5b2630; }
-table { width: 100%; border-collapse: collapse; background: #2b2d38; border-radius: 12px; overflow: hidden; }
-th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #3a3d4d; }
-th { background: #3a3d4d; }
-.empty { color: #8b8fa3; }
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; background: #f3f4f6; color: #111827; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+.muted { color: #6b7280; margin: 4px 0; }
+
+/* navbar */
+.navbar { position: sticky; top: 0; z-index: 10; background: #111827; }
+.nav-inner { max-width: 1100px; margin: 0 auto; padding: 14px 20px; display: flex; justify-content: space-between; align-items: center; }
+.logo { color: #fff; font-weight: 700; font-size: 20px; }
+.nav-links a { color: #d1d5db; text-decoration: none; margin-left: 20px; font-size: 15px; }
+.nav-links a:hover { color: #fff; }
+
+/* hero */
+.hero { background: linear-gradient(135deg, #111827 0%, #1e3a8a 100%); color: #fff; padding: 72px 20px; }
+.hero-inner { max-width: 1100px; margin: 0 auto; }
+.hero h1 { margin: 0 0 12px; font-size: 44px; }
+.hero p { margin: 0 0 24px; color: #cbd5e1; font-size: 18px; }
+.btn-hero { display: inline-block; background: #f59e0b; color: #111827; padding: 12px 24px; border-radius: 10px; font-weight: 600; text-decoration: none; }
+
+/* layout */
+.container { max-width: 1100px; margin: 0 auto; padding: 0 20px; }
+.section { padding: 40px 0 0; scroll-margin-top: 70px; }
+.section h2 { margin: 0 0 20px; font-size: 26px; }
+
+/* bike cards */
+.bikes { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 24px; }
+.bike-card { background: #fff; border-radius: 16px; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.08); transition: transform 0.2s, box-shadow 0.2s; }
+.bike-card:hover { transform: translateY(-4px); box-shadow: 0 8px 24px rgba(0,0,0,0.14); }
+.bike-img { position: relative; height: 200px; background: #e5e7eb; }
+.bike-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.bike-placeholder { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #1e3a8a, #111827); color: #fff; font-size: 28px; font-weight: 700; }
+.badge { position: absolute; top: 12px; left: 12px; padding: 4px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+.badge.ok { background: #dcfce7; color: #166534; }
+.badge.no { background: #fee2e2; color: #991b1b; }
+.bike-body { padding: 16px; }
+.bike-body h3 { margin: 0; font-size: 20px; }
+.bike-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 16px; }
+.price { margin: 0; font-size: 22px; font-weight: 700; color: #1e3a8a; }
+.price span { font-size: 14px; font-weight: 400; color: #6b7280; }
+
+/* buttons */
+.btn { background: #1e3a8a; color: #fff; border: none; border-radius: 10px; padding: 10px 22px; font-size: 15px; font-weight: 600; cursor: pointer; }
+.btn:hover { background: #1e40af; }
+.btn:disabled { background: #9ca3af; cursor: not-allowed; }
+.btn-lg { padding: 14px; font-size: 16px; width: 100%; }
+
+/* booking */
+.book-grid { display: grid; grid-template-columns: 1fr 1.2fr; gap: 24px; align-items: start; }
+.summary { background: #fff; border-radius: 16px; padding: 20px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
+.summary-img { height: 200px; border-radius: 12px; overflow: hidden; margin-bottom: 12px; }
+.summary-img img { width: 100%; height: 100%; object-fit: cover; }
+.summary h3 { margin: 0; }
+.estimate { display: flex; justify-content: space-between; align-items: center; margin-top: 16px; padding: 14px; background: #eff6ff; border-radius: 10px; color: #1e3a8a; }
+.estimate strong { font-size: 22px; }
+.booking-form { background: #fff; border-radius: 16px; padding: 20px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); display: grid; gap: 14px; }
+.booking-form label { display: grid; gap: 6px; font-size: 14px; font-weight: 600; color: #374151; }
+.row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+input, select { padding: 11px 12px; border: 1px solid #d1d5db; border-radius: 10px; font-size: 15px; background: #fff; color: #111827; width: 100%; }
+input:focus, select:focus { outline: 2px solid #93c5fd; border-color: #3b82f6; }
+.message { padding: 12px; border-radius: 10px; font-size: 14px; }
+.message.success { background: #dcfce7; color: #166534; }
+.message.error { background: #fee2e2; color: #991b1b; }
+
+/* table */
+.table-wrap { overflow-x: auto; background: #fff; border-radius: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
+table { width: 100%; border-collapse: collapse; }
+th, td { padding: 14px 16px; text-align: left; border-bottom: 1px solid #f3f4f6; white-space: nowrap; }
+th { background: #f9fafb; font-size: 13px; text-transform: uppercase; letter-spacing: 0.04em; color: #6b7280; }
+
+.footer { text-align: center; color: #6b7280; padding: 40px 0; margin-top: 40px; }
+
+@media (max-width: 760px) {
+  .book-grid { grid-template-columns: 1fr; }
+  .hero h1 { font-size: 32px; }
+  .row { grid-template-columns: 1fr; }
+}
+
+.logo { cursor: pointer; }
+.nav-links { display: flex; align-items: center; }
+.nav-user { color: #fff; margin-left: 20px; font-size: 15px; }
+.nav-btn { margin-left: 12px; background: transparent; color: #fff; border: 1px solid #4b5563; border-radius: 8px; padding: 7px 16px; font-size: 14px; cursor: pointer; }
+.nav-btn:hover { background: #1f2937; }
+.nav-btn.primary { background: #f59e0b; border-color: #f59e0b; color: #111827; font-weight: 600; }
+.nav-btn.primary:hover { background: #d97706; }
+
+.banner { margin-top: 24px; }
+
+.auth-wrap { min-height: calc(100vh - 120px); display: flex; align-items: center; justify-content: center; padding: 40px 20px; }
+.auth-card { width: 100%; max-width: 420px; background: #fff; border-radius: 16px; padding: 28px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); display: grid; gap: 14px; }
+.auth-card h2 { margin: 0; }
+.auth-card label { display: grid; gap: 6px; font-size: 14px; font-weight: 600; color: #374151; }
+.auth-switch { text-align: center; color: #6b7280; font-size: 14px; margin: 0; }
+.link-btn { background: none; border: none; color: #1e3a8a; font-weight: 600; cursor: pointer; padding: 0; font-size: 14px; }
+
+.login-prompt { background: #fff; border-radius: 16px; padding: 32px; text-align: center; box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
+.login-prompt h3 { margin: 0 0 8px; }
+.login-prompt .actions { display: flex; gap: 12px; justify-content: center; margin-top: 16px; }
+.btn-outline { background: #fff; color: #1e3a8a; border: 2px solid #1e3a8a; }
+.btn-outline:hover { background: #eff6ff; }

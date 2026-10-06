@@ -32,4 +32,6 @@ public class Bike {
     private Double pricePerDay;
 
     private boolean available = true;
+
+    private String imageUrl;
 }

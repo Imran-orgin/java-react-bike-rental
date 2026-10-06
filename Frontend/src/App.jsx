@@ -1,8 +1,14 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
+import api from "./api";
+import { useAuth } from "./auth/authContext";
+import AuthPage from "./AuthPage";
 import "./App.css";
 
-const API = "http://localhost:8080/api";
+const BRAND = "Bike Rental"; // change to your friend's business name
+const CURRENCY = "LKR"; // change if needed
+
+const money = (n) => `${CURRENCY} ${Number(n).toLocaleString()}`;
+
 const emptyForm = {
   bikeId: "",
   customerName: "",
@@ -10,35 +16,71 @@ const emptyForm = {
   startDate: "",
   endDate: "",
 };
+const today = new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
+  .toISOString()
+  .split("T")[0];
+
+function BikeImage({ bike }) {
+  const [failed, setFailed] = useState(false);
+  if (!bike.imageUrl || failed) {
+    return <div className="bike-placeholder">{bike.name}</div>;
+  }
+  return <img src={bike.imageUrl} alt={bike.name} onError={() => setFailed(true)} />;
+}
 
 export default function App() {
+  const { user, logout } = useAuth();
+  const [view, setView] = useState("home"); // home | login | register
   const [bikes, setBikes] = useState([]);
   const [bookings, setBookings] = useState([]);
   const [form, setForm] = useState(emptyForm);
-  const [message, setMessage] = useState(null);
+  const [message, setMessage] = useState(null); // booking form result
+  const [notice, setNotice] = useState(null); // page-level errors
 
-  const loadData = async () => {
+  const loadBikes = async () => {
     try {
-      const [bikeRes, bookingRes] = await Promise.all([
-        axios.get(`${API}/bikes`),
-        axios.get(`${API}/bookings`),
-      ]);
-      setBikes(bikeRes.data);
-      setBookings(bookingRes.data);
+      const res = await api.get("/bikes");
+      setBikes(res.data);
     } catch {
-      setMessage({
-        type: "error",
-        text: "Backend-ku connect aagala. Spring Boot run aagudha paarunga.",
-      });
+      setNotice("Unable to reach the server. Please try again later.");
+    }
+  };
+
+  const loadBookings = async () => {
+    try {
+      const res = await api.get("/bookings");
+      setBookings(res.data);
+    } catch (err) {
+      if (err.response?.status === 401) {
+        logout();
+        setNotice("Your session has expired. Please log in again.");
+      }
     }
   };
 
   useEffect(() => {
-    loadData();
+    loadBikes();
   }, []);
+
+  useEffect(() => {
+    if (user) loadBookings();
+  }, [user]);
+
+  const handleLogout = () => {
+    logout();
+    setView("home");
+    setForm(emptyForm);
+    setMessage(null);
+    setBookings([]);
+  };
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
+  };
+
+  const selectBike = (id) => {
+    setForm({ ...form, bikeId: String(id) });
+    document.getElementById("book").scrollIntoView({ behavior: "smooth" });
   };
 
   const selectedBike = bikes.find((b) => String(b.id) === String(form.bikeId));
@@ -47,123 +89,291 @@ export default function App() {
       ? Math.round((new Date(form.endDate) - new Date(form.startDate)) / 86400000) + 1
       : 0;
   const estimate = selectedBike && days > 0 ? days * selectedBike.pricePerDay : 0;
+  const visibleBookings = user ? bookings : [];
+  const isAdmin = user?.role === "ADMIN";
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setMessage(null);
     try {
-      const res = await axios.post(`${API}/bookings`, {
+      const res = await api.post("/bookings", {
         ...form,
+        customerName: form.customerName.trim() || user.fullName,
         bikeId: Number(form.bikeId),
       });
-      setMessage({ type: "success", text: `Booked! Total price: ${res.data.totalPrice}` });
+      setMessage({
+        type: "success",
+        text: `Booking confirmed! Total: ${money(res.data.totalPrice)}`,
+      });
       setForm(emptyForm);
-      loadData();
+      loadBookings();
     } catch (err) {
-      setMessage({ type: "error", text: err.response?.data?.error || "Server error" });
+      if (err.response?.status === 401) {
+        handleLogout();
+        setNotice("Your session has expired. Please log in again.");
+        setView("login");
+        return;
+      }
+      setMessage({
+        type: "error",
+        text: err.response?.data?.error || "Something went wrong. Please try again.",
+      });
     }
   };
 
   return (
-    <div className="page">
-      <h1>Bike Rental</h1>
-
-      <section>
-        <h2>Bikes</h2>
-        <div className="bikes">
-          {bikes.map((bike) => (
-            <div
-              key={bike.id}
-              className={`bike-card ${String(form.bikeId) === String(bike.id) ? "selected" : ""}`}
-              onClick={() => setForm({ ...form, bikeId: String(bike.id) })}
-            >
-              <h3>{bike.name}</h3>
-              <p>{bike.brand} · {bike.type}</p>
-              <p className="price">{bike.pricePerDay} / day</p>
-              <span className={bike.available ? "badge ok" : "badge no"}>
-                {bike.available ? "Available" : "Not available"}
-              </span>
-            </div>
-          ))}
+    <>
+      <nav className="navbar">
+        <div className="nav-inner">
+          <span className="logo" onClick={() => setView("home")}>🏍️ {BRAND}</span>
+          <div className="nav-links">
+            {view === "home" && (
+              <>
+                <a href="#bikes">Bikes</a>
+                <a href="#book">Book</a>
+                {user && <a href="#bookings">Bookings</a>}
+              </>
+            )}
+            {user ? (
+              <>
+                <span className="nav-user">Hi, {user.fullName}</span>
+                <button className="nav-btn" onClick={handleLogout}>Log out</button>
+              </>
+            ) : (
+              <>
+                <button className="nav-btn" onClick={() => setView("login")}>Log in</button>
+                <button className="nav-btn primary" onClick={() => setView("register")}>Sign up</button>
+              </>
+            )}
+          </div>
         </div>
-      </section>
+      </nav>
 
-      <section>
-        <h2>Book a bike</h2>
-        <form className="booking-form" onSubmit={handleSubmit}>
-          <select name="bikeId" value={form.bikeId} onChange={handleChange} required>
-            <option value="">Select bike</option>
-            {bikes.map((bike) => (
-              <option key={bike.id} value={bike.id}>
-                {bike.name} ({bike.pricePerDay}/day)
-              </option>
-            ))}
-          </select>
-          <input
-            name="customerName"
-            placeholder="Your name"
-            value={form.customerName}
-            onChange={handleChange}
-            required
-          />
-          <input
-            name="customerPhone"
-            placeholder="Phone number"
-            value={form.customerPhone}
-            onChange={handleChange}
-            required
-          />
-          <label>
-            Start date
-            <input type="date" name="startDate" value={form.startDate} onChange={handleChange} required />
-          </label>
-          <label>
-            End date
-            <input type="date" name="endDate" value={form.endDate} onChange={handleChange} required />
-          </label>
+      {view !== "home" ? (
+        <AuthPage
+          mode={view}
+          onDone={() => {
+            setNotice(null);
+            setView("home");
+          }}
+          onSwitch={() => setView(view === "login" ? "register" : "login")}
+        />
+      ) : (
+        <>
+          <header className="hero">
+            <div className="hero-inner">
+              <h1>Rent a bike. Ride today.</h1>
+              <p>Choose your bike, pick your dates, and book in a minute.</p>
+              <a className="btn-hero" href="#bikes">View bikes</a>
+            </div>
+          </header>
 
-          {estimate > 0 && (
-            <p className="estimate">
-              {days} day(s) × {selectedBike.pricePerDay} = <b>{estimate}</b>
-            </p>
-          )}
+          <main className="container">
+            {notice && <div className="message error banner">{notice}</div>}
 
-          <button type="submit">Book now</button>
-          {message && <div className={`message ${message.type}`}>{message.text}</div>}
-        </form>
-      </section>
+            <section id="bikes" className="section">
+              <h2>Our bikes</h2>
+              <div className="bikes">
+                {bikes.map((bike) => (
+                  <div key={bike.id} className="bike-card">
+                    <div className="bike-img">
+                      <BikeImage bike={bike} />
+                      <span className={bike.available ? "badge ok" : "badge no"}>
+                        {bike.available ? "Available" : "Not available"}
+                      </span>
+                    </div>
+                    <div className="bike-body">
+                      <h3>{bike.name}</h3>
+                      <p className="muted">{bike.brand} · {bike.type}</p>
+                      <div className="bike-footer">
+                        <p className="price">
+                          {money(bike.pricePerDay)} <span>/ day</span>
+                        </p>
+                        <button
+                          className="btn"
+                          disabled={!bike.available}
+                          onClick={() => selectBike(bike.id)}
+                        >
+                          Book
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
 
-      <section>
-        <h2>Bookings</h2>
-        {bookings.length === 0 ? (
-          <p className="empty">Innum bookings illa</p>
-        ) : (
-          <table>
-            <thead>
-              <tr>
-                <th>Bike</th>
-                <th>Customer</th>
-                <th>Phone</th>
-                <th>From</th>
-                <th>To</th>
-                <th>Total</th>
+            <section id="book" className="section">
+              <h2>Book your ride</h2>
+              {!user ? (
+                <div className="login-prompt">
+                  <h3>Log in to book</h3>
+                  <p className="muted">Log in to your account, or create a new one to book a bike.</p>
+                  <div className="actions">
+                    <button className="btn" onClick={() => setView("login")}>Log in</button>
+                    <button className="btn btn-outline" onClick={() => setView("register")}>Sign up</button>
+                  </div>
+                </div>
+              ) : (
+                <div className="book-grid">
+                  <div className="summary">
+                    {selectedBike ? (
+                      <>
+                        <div className="summary-img">
+                          <BikeImage bike={selectedBike} />
+                        </div>
+                        <h3>{selectedBike.name}</h3>
+                        <p className="muted">{selectedBike.brand} · {selectedBike.type}</p>
+                        <p className="price">
+                          {money(selectedBike.pricePerDay)} <span>/ day</span>
+                        </p>
+                        {estimate > 0 && (
+                          <div className="estimate">
+                            <span>
+                              {days} day(s) × {money(selectedBike.pricePerDay)}
+                            </span>
+                            <strong>{money(estimate)}</strong>
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <p className="muted">Select a bike from the list above, or choose one from the dropdown.</p>
+                    )}
+                  </div>
+
+                  <form className="booking-form" onSubmit={handleSubmit}>
+                    <label>
+                      Bike
+                      <select name="bikeId" value={form.bikeId} onChange={handleChange} required>
+                        <option value="">Select a bike</option>
+                        {bikes.map((bike) => (
+                          <option key={bike.id} value={bike.id}>
+                            {bike.name} ({money(bike.pricePerDay)}/day)
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label>
+                      Customer name
+                      <input
+                        name="customerName"
+                        placeholder={user.fullName}
+                        value={form.customerName}
+                        onChange={handleChange}
+                      />
+                    </label>
+                    <label>
+                      Phone number
+                      <input name="customerPhone" value={form.customerPhone} onChange={handleChange} required />
+                    </label>
+                    <div className="row">
+                      <label>
+                        Start date
+                        <input
+                          type="date"
+                          name="startDate"
+                          min={today}
+                          value={form.startDate}
+                          onChange={handleChange}
+                          required
+                        />
+                      </label>
+                      <label>
+                        End date
+                        <input
+                          type="date"
+                          name="endDate"
+                          min={form.startDate || today}
+                          value={form.endDate}
+                          onChange={handleChange}
+                          required
+                        />
+                      </label>
+                    </div>
+                    <button type="submit" className="btn btn-lg">Book now</button>
+                    {message && <div className={`message ${message.type}`}>{message.text}</div>}
+                  </form>
+                </div>
+              )}
+            </section>
+
+            {user && (
+              <section id="bookings" className="section">
+                <h2>Bookings</h2>
+                {visibleBookings.length === 0 ? (
+                  <p className="muted">No bookings yet.</p>
+                ) : (
+                  <div className="table-wrap">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Bike</th>
+                          <th>Customer</th>
+                          <th>Phone</th>
+                          <th>From</th>
+                          <th>To</th>
+                          <th>Total</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {visibleBookings.map((b) => (
+                          <tr key={b.id}>
+                            <td>{b.bike?.name}</td>
+                            <td>{b.customerName}</td>
+                            <td>{b.customerPhone}</td>
+                            <td>{b.startDate}</td>
+                            <td>{b.endDate}</td>
+                            <td>{money(b.totalPrice)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </section>
+            )}
+            {user && (
+  <section id="bookings" className="section">
+    <h2>{isAdmin ? "All bookings" : "My bookings"}</h2>
+    {visibleBookings.length === 0 ? (
+      <p className="muted">No bookings yet.</p>
+    ) : (
+      <div className="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Bike</th>
+              <th>Customer</th>
+              <th>Phone</th>
+              {isAdmin && <th>Account</th>}
+              <th>From</th>
+              <th>To</th>
+              <th>Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {visibleBookings.map((b) => (
+              <tr key={b.id}>
+                <td>{b.bike?.name}</td>
+                <td>{b.customerName}</td>
+                <td>{b.customerPhone}</td>
+                {isAdmin && <td>{b.bookedBy || "-"}</td>}
+                <td>{b.startDate}</td>
+                <td>{b.endDate}</td>
+                <td>{money(b.totalPrice)}</td>
               </tr>
-            </thead>
-            <tbody>
-              {bookings.map((b) => (
-                <tr key={b.id}>
-                  <td>{b.bike?.name}</td>
-                  <td>{b.customerName}</td>
-                  <td>{b.customerPhone}</td>
-                  <td>{b.startDate}</td>
-                  <td>{b.endDate}</td>
-                  <td>{b.totalPrice}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </section>
-    </div>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    )}
+  </section>
+)}
+          </main>
+        </>
+      )}
+
+      <footer className="footer">© {new Date().getFullYear()} {BRAND}. All rights reserved.</footer>
+    </>
   );
 }

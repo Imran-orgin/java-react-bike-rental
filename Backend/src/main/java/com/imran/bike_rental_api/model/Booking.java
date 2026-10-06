@@ -23,6 +23,9 @@ public class Booking {
     @ManyToOne
     private Bike bike;
 
+    @ManyToOne
+    private User user;
+
     private String customerName;
     private String customerPhone;
     private LocalDate startDate;
