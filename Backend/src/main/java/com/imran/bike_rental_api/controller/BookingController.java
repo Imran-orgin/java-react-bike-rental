@@ -24,8 +24,16 @@ public class BookingController {
 
     @GetMapping
     public List<BookingResponse> getBookings(Authentication authentication) {
-        boolean admin = authentication.getAuthorities().stream()
+        return service.getBookings(authentication.getName(), isAdmin(authentication));
+    }
+
+    @DeleteMapping("/{id}")
+    public void cancel(@PathVariable Long id, Authentication authentication) {
+        service.cancel(id, authentication.getName(), isAdmin(authentication));
+    }
+
+    private boolean isAdmin(Authentication authentication) {
+        return authentication.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
-        return service.getBookings(authentication.getName(), admin);
     }
 }

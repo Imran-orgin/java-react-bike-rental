@@ -11,6 +11,8 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     boolean existsByBikeIdAndStartDateLessThanEqualAndEndDateGreaterThanEqual(
             Long bikeId, LocalDate newEnd, LocalDate newStart);
 
+    boolean existsByBikeId(Long bikeId);
+
     List<Booking> findByUserEmailOrderByStartDateDesc(String email);
 
     List<Booking> findAllByOrderByStartDateDesc();

@@ -3,7 +3,9 @@ package com.imran.bike_rental_api.service;
 import com.imran.bike_rental_api.dto.BookingRequest;
 import com.imran.bike_rental_api.dto.BookingResponse;
 import com.imran.bike_rental_api.exception.BookingConflictException;
+import com.imran.bike_rental_api.exception.ForbiddenOperationException;
 import com.imran.bike_rental_api.exception.InvalidCredentialsException;
+import com.imran.bike_rental_api.exception.ResourceNotFoundException;
 import com.imran.bike_rental_api.model.Bike;
 import com.imran.bike_rental_api.model.Booking;
 import com.imran.bike_rental_api.model.User;
@@ -12,6 +14,7 @@ import com.imran.bike_rental_api.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 
@@ -60,6 +63,22 @@ public class BookingService {
                 ? bookingRepository.findAllByOrderByStartDateDesc()
                 : bookingRepository.findByUserEmailOrderByStartDateDesc(email);
         return bookings.stream().map(this::toResponse).toList();
+    }
+
+    public void cancel(Long id, String email, boolean admin) {
+        Booking booking = bookingRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Booking not found: " + id));
+
+        if (!admin) {
+            boolean owner = booking.getUser() != null && booking.getUser().getEmail().equals(email);
+            if (!owner) {
+                throw new ForbiddenOperationException("You can only cancel your own bookings");
+            }
+            if (!booking.getStartDate().isAfter(LocalDate.now())) {
+                throw new IllegalArgumentException("Bookings that have already started cannot be cancelled");
+            }
+        }
+        bookingRepository.delete(booking);
     }
 
     private BookingResponse toResponse(Booking b) {

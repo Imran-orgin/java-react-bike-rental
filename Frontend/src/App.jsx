@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import api from "./api";
+import api, { imageSrc } from "./api";
 import { useAuth } from "./auth/authContext";
 import AuthPage from "./AuthPage";
+import AdminBikes from "./AdminBikes";
 import "./App.css";
 
 const BRAND = "Bike Rental"; // change to your friend's business name
@@ -25,17 +26,20 @@ function BikeImage({ bike }) {
   if (!bike.imageUrl || failed) {
     return <div className="bike-placeholder">{bike.name}</div>;
   }
-  return <img src={bike.imageUrl} alt={bike.name} onError={() => setFailed(true)} />;
+  return <img src={imageSrc(bike.imageUrl)} alt={bike.name} onError={() => setFailed(true)} />;
 }
 
 export default function App() {
   const { user, logout } = useAuth();
-  const [view, setView] = useState("home"); // home | login | register
+  const [view, setView] = useState("home"); // home | login | register | admin
   const [bikes, setBikes] = useState([]);
   const [bookings, setBookings] = useState([]);
   const [form, setForm] = useState(emptyForm);
   const [message, setMessage] = useState(null); // booking form result
+  const [cancelMessage, setCancelMessage] = useState(null); // cancel result
   const [notice, setNotice] = useState(null); // page-level errors
+
+  const isAdmin = user?.role === "ADMIN";
 
   const loadBikes = async () => {
     try {
@@ -53,6 +57,7 @@ export default function App() {
     } catch (err) {
       if (err.response?.status === 401) {
         logout();
+        setView("home");
         setNotice("Your session has expired. Please log in again.");
       }
     }
@@ -71,6 +76,7 @@ export default function App() {
     setView("home");
     setForm(emptyForm);
     setMessage(null);
+    setCancelMessage(null);
     setBookings([]);
   };
 
@@ -90,7 +96,6 @@ export default function App() {
       : 0;
   const estimate = selectedBike && days > 0 ? days * selectedBike.pricePerDay : 0;
   const visibleBookings = user ? bookings : [];
-  const isAdmin = user?.role === "ADMIN";
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -121,6 +126,28 @@ export default function App() {
     }
   };
 
+  const cancelBooking = async (booking) => {
+    const label = `${booking.bike?.name} (${booking.startDate} to ${booking.endDate})`;
+    if (!window.confirm(`Cancel this booking?\n${label}`)) return;
+    setCancelMessage(null);
+    try {
+      await api.delete(`/bookings/${booking.id}`);
+      setCancelMessage({ type: "success", text: "Booking cancelled." });
+      loadBookings();
+    } catch (err) {
+      if (err.response?.status === 401) {
+        handleLogout();
+        setNotice("Your session has expired. Please log in again.");
+        setView("login");
+        return;
+      }
+      setCancelMessage({
+        type: "error",
+        text: err.response?.data?.error || "Unable to cancel this booking.",
+      });
+    }
+  };
+
   return (
     <>
       <nav className="navbar">
@@ -133,6 +160,14 @@ export default function App() {
                 <a href="#book">Book</a>
                 {user && <a href="#bookings">Bookings</a>}
               </>
+            )}
+            {isAdmin && (
+              <button
+                className="nav-btn"
+                onClick={() => setView(view === "admin" ? "home" : "admin")}
+              >
+                {view === "admin" ? "Back to site" : "Manage bikes"}
+              </button>
             )}
             {user ? (
               <>
@@ -149,7 +184,7 @@ export default function App() {
         </div>
       </nav>
 
-      {view !== "home" ? (
+      {(view === "login" || view === "register") && (
         <AuthPage
           mode={view}
           onDone={() => {
@@ -158,7 +193,17 @@ export default function App() {
           }}
           onSwitch={() => setView(view === "login" ? "register" : "login")}
         />
-      ) : (
+      )}
+
+      {view === "admin" && isAdmin && (
+        <main className="container">
+          <section className="section">
+            <AdminBikes bikes={bikes} onChanged={loadBikes} money={money} />
+          </section>
+        </main>
+      )}
+
+      {view === "home" && (
         <>
           <header className="hero">
             <div className="hero-inner">
@@ -246,11 +291,13 @@ export default function App() {
                       Bike
                       <select name="bikeId" value={form.bikeId} onChange={handleChange} required>
                         <option value="">Select a bike</option>
-                        {bikes.map((bike) => (
-                          <option key={bike.id} value={bike.id}>
-                            {bike.name} ({money(bike.pricePerDay)}/day)
-                          </option>
-                        ))}
+                        {bikes
+                          .filter((bike) => bike.available)
+                          .map((bike) => (
+                            <option key={bike.id} value={bike.id}>
+                              {bike.name} ({money(bike.pricePerDay)}/day)
+                            </option>
+                          ))}
                       </select>
                     </label>
                     <label>
@@ -299,7 +346,10 @@ export default function App() {
 
             {user && (
               <section id="bookings" className="section">
-                <h2>Bookings</h2>
+                <h2>{isAdmin ? "All bookings" : "My bookings"}</h2>
+                {cancelMessage && (
+                  <div className={`message ${cancelMessage.type} spaced`}>{cancelMessage.text}</div>
+                )}
                 {visibleBookings.length === 0 ? (
                   <p className="muted">No bookings yet.</p>
                 ) : (
@@ -310,9 +360,11 @@ export default function App() {
                           <th>Bike</th>
                           <th>Customer</th>
                           <th>Phone</th>
+                          {isAdmin && <th>Account</th>}
                           <th>From</th>
                           <th>To</th>
                           <th>Total</th>
+                          <th></th>
                         </tr>
                       </thead>
                       <tbody>
@@ -321,9 +373,20 @@ export default function App() {
                             <td>{b.bike?.name}</td>
                             <td>{b.customerName}</td>
                             <td>{b.customerPhone}</td>
+                            {isAdmin && <td>{b.bookedBy || "-"}</td>}
                             <td>{b.startDate}</td>
                             <td>{b.endDate}</td>
                             <td>{money(b.totalPrice)}</td>
+                            <td>
+                              {(isAdmin || b.startDate > today) && (
+                                <button
+                                  className="btn btn-danger btn-sm"
+                                  onClick={() => cancelBooking(b)}
+                                >
+                                  Cancel
+                                </button>
+                              )}
+                            </td>
                           </tr>
                         ))}
                       </tbody>
@@ -332,43 +395,6 @@ export default function App() {
                 )}
               </section>
             )}
-            {user && (
-  <section id="bookings" className="section">
-    <h2>{isAdmin ? "All bookings" : "My bookings"}</h2>
-    {visibleBookings.length === 0 ? (
-      <p className="muted">No bookings yet.</p>
-    ) : (
-      <div className="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Bike</th>
-              <th>Customer</th>
-              <th>Phone</th>
-              {isAdmin && <th>Account</th>}
-              <th>From</th>
-              <th>To</th>
-              <th>Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            {visibleBookings.map((b) => (
-              <tr key={b.id}>
-                <td>{b.bike?.name}</td>
-                <td>{b.customerName}</td>
-                <td>{b.customerPhone}</td>
-                {isAdmin && <td>{b.bookedBy || "-"}</td>}
-                <td>{b.startDate}</td>
-                <td>{b.endDate}</td>
-                <td>{money(b.totalPrice)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    )}
-  </section>
-)}
           </main>
         </>
       )}

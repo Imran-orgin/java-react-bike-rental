@@ -97,3 +97,27 @@ th { background: #f9fafb; font-size: 13px; text-transform: uppercase; letter-spa
 .login-prompt .actions { display: flex; gap: 12px; justify-content: center; margin-top: 16px; }
 .btn-outline { background: #fff; color: #1e3a8a; border: 2px solid #1e3a8a; }
 .btn-outline:hover { background: #eff6ff; }
+
+.spaced { margin-bottom: 14px; }
+
+.admin-grid { display: grid; grid-template-columns: 1fr 1.6fr; gap: 24px; align-items: start; }
+.admin-form-title { margin: 0 0 4px; }
+.form-actions { display: flex; gap: 10px; }
+.booking-form .checkbox-row { display: flex; flex-direction: row; align-items: center; gap: 8px; }
+.checkbox-row input { width: auto; }
+.row-actions { display: flex; gap: 8px; }
+.hint { color: #6b7280; font-size: 13px; margin: 10px 4px 0; }
+
+.pill { border: none; border-radius: 999px; padding: 4px 12px; font-size: 12px; font-weight: 600; cursor: pointer; }
+.pill.ok { background: #dcfce7; color: #166534; }
+.pill.no { background: #fee2e2; color: #991b1b; }
+
+.btn-sm { padding: 6px 14px; font-size: 13px; border-radius: 8px; }
+.btn-danger { background: #dc2626; }
+.btn-danger:hover { background: #b91c1c; }
+
+@media (max-width: 900px) { .admin-grid { grid-template-columns: 1fr; } }
+.field-label { font-size: 14px; font-weight: 600; color: #374151; }
+.image-field { display: grid; gap: 8px; }
+.image-preview { width: 100%; max-height: 180px; object-fit: cover; border-radius: 10px; }
+.hint.no-margin { margin: 0; }
